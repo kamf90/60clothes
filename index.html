@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>60-Second Clothing Word Unscramble!</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f8ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; 
+            min-height: 100vh; /* Changed from height to min-height to allow expanding */
+            margin: 0;
+            padding: 40px 20px; /* Added more breathing room on top/bottom */
+            box-sizing: border-box;
+            color: #333;
+            /* overflow: hidden; removed to allow standard browser scrollbars */
+        }
+
+        .card-container {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 98vw;
+            max-width: 1400px;
+            /* height: 55vh; removed so it scales naturally with content height */
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            transition: filter 0.3s ease;
+        }
+
+        #menu-container {
+            justify-content: center;
+        }
+
+        #game-container {
+            display: none;
+        }
+
+        #menu-container p {
+            font-size: 1.5rem;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #4a90e2;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 2.5rem;
+        }
+
+        #stats-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin-bottom: 25px;
+            background: #eef5fc;
+            padding: 12px 30px;
+            border-radius: 10px;
+        }
+
+        .board-label {
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 8px;
+            text-align: left;
+        }
+
+        .letter-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+            border: 3px dashed #ccc;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 25px;
+            background-color: #fafafa;
+        }
+
+        #answer-board {
+            border: 3px solid #4a90e2;
+            background-color: #f4f9ff;
+        }
+
+        #scrambled-pile {
+            border: 3px solid #f39c12; 
+            background-color: #fffdf9;
+        }
+
+        .letter-tile {
+            background-color: #4a90e2;
+            color: white;
+            font-size: 3rem; 
+            font-weight: bold;
+            min-width: 80px;
+            height: 80px; 
+            padding: 0 15px;
+            margin: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .letter-tile:active {
+            transform: scale(0.92);
+        }
+
+        .letter-tile.in-answer {
+            background-color: #2ecc71;
+        }
+
+        #mid-interaction-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            min-height: 90px;
+        }
+
+        #controls {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+        }
+
+        button {
+            padding: 15px 45px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 5px 7px rgba(0,0,0,0.15);
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #start-btn, #play-again-btn {
+            background-color: #2ecc71;
+            color: white;
+            font-size: 1.8rem;
+            padding: 18px 60px;
+        }
+
+        #reset-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        #speak-btn {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        #next-btn {
+            background-color: #2ecc71;
+            color: white;
+            display: none;
+        }
+
+        #message {
+            font-size: 2rem;
+            font-weight: bold;
+            line-height: 1.6;
+            margin-bottom: 10px;
+            height: 35px;
+        }
+
+        .success-text {
+            color: #2ecc71;
+            animation: bounce 0.5s ease;
+        }
+
+        .wrong-text {
+            color: #e74c3c;
+            animation: shake 0.3s ease;
+        }
+
+        .time-low {
+            color: #e74c3c;
+            animation: pulse 1s infinite;
+        }
+
+        /* POPUP MODAL STYLES */
+        #popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup-box {
+            background: white;
+            padding: 40px 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            text-align: center;
+            max-width: 550px;
+            width: 85%;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .popup-box h2 {
+            margin-top: 0;
+            font-size: 2.5rem;
+        }
+
+        .popup-score-details {
+            font-size: 1.6rem;
+            line-height: 1.8;
+            margin: 25px 0;
+            color: #555;
+        }
+
+        .blur-background {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="menu-container" class="card-container">
+    <h1>👕 Clothing Word Rush! 👟</h1>
+    <p>
+        Can you unscramble all 10 clothing words?<br>
+        You have <strong>60 seconds</strong> on the clock.<br>
+        Each correct word is worth <strong>10 points</strong>!
+    </p>
+    <div style="display: flex; justify-content: center;">
+        <button id="start-btn" onclick="startGame()">Start Game ▶</button>
+    </div>
+</div>
+
+<div id="game-container" class="card-container">
+    <div>
+        <h1>👕 60s Word Rush! 👟</h1>
+        
+        <div id="stats-bar">
+            <div>Word: <span id="word-number">1</span>/<span id="total-words-count">10</span></div>
+            <div id="timer-wrapper">Time Left: <span id="timer">60</span>s</div>
+        </div>
+    </div>
+
+    <div>
+        <div class="board-label">Your Answer:</div>
+        <div id="answer-board" class="letter-container"></div>
+
+        <div id="mid-interaction-row">
+            <div id="message"></div>
+            <div id="controls">
+                <button id="speak-btn" onclick="speakCurrentWord()">🔊 Listen</button>
+                <button id="reset-btn" onclick="resetCurrentWord()">Reset</button>
+                <button id="next-btn" onclick="nextWord()">Next Word →</button>
+            </div>
+        </div>
+
+        <div class="board-label">Letters Pile (Tap them!):</div>
+        <div id="scrambled-pile" class="letter-container"></div>
+    </div>
+</div>
+
+<div id="popup-overlay">
+    <div class="popup-box">
+        <h2 id="popup-title">🏆 Result</h2>
+        <div class="popup-score-details" id="popup-details">
+            </div>
+        <button id="play-again-btn" onclick="returnToMenu()">Play Again 🔄</button>
+    </div>
+</div>
+
+<script>
+    const originalWords = ["jeans", "cap", "jacket", "sweater", "shoes", "socks", "trousers", "skirt", "T-shirt", "shorts"];
+    let gameWords = [];
+    let currentWordIndex = 0;
+    let targetWord = "";
+    
+    let scrambledLetters = []; 
+    let answeredLetters = [];
+
+    let timerInterval;
+    let timeLeft = 60; 
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function startGame() {
+        document.getElementById("menu-container").style.display = "none";
+        document.getElementById("game-container").style.display = "flex";
+        document.getElementById("game-container").classList.remove("blur-background");
+        document.getElementById("popup-overlay").style.display = "none";
+
+        gameWords = shuffle([...originalWords]);
+        document.getElementById("total-words-count").innerText = gameWords.length;
+        currentWordIndex = 0;
+        timeLeft = 60;
+        
+        document.getElementById("timer").innerText = timeLeft;
+        document.getElementById("timer-wrapper").className = "";
+
+        runTimer();
+        loadWord();
+    }
+
+    function returnToMenu() {
+        document.getElementById("popup-overlay").style.display = "none";
+        document.getElementById("game-container").style.display = "none";
+        document.getElementById("menu-container").style.display = "flex";
+    }
+
+    function runTimer() {
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById("timer").innerText = timeLeft;
+            
+            if (timeLeft <= 10) {
+                document.getElementById("timer-wrapper").className = "time-low";
+            }
+
+            if (timeLeft <= 0) {
+                endGame(false); 
+            }
+        }, 1000);
+    }
+
+    function loadWord() {
+        if (currentWordIndex >= gameWords.length) {
+            endGame(true); 
+            return;
+        }
+
+        document.getElementById("word-number").innerText = currentWordIndex + 1;
+        clearMessage();
+        document.getElementById("next-btn").style.display = "none";
+        document.getElementById("reset-btn").style.display = "inline-block";
+        document.getElementById("speak-btn").style.display = "inline-block";
+
+        targetWord = gameWords[currentWordIndex];
+        answeredLetters = [];
+
+        let letterObjects = [];
+
+        if (targetWord === "T-shirt") {
+            letterObjects.push({ id: 0, char: "T-" });
+            const remaining = "shirt".split('');
+            remaining.forEach((char, index) => {
+                letterObjects.push({ id: index + 1, char: char });
+            });
+        } else {
+            letterObjects = targetWord.split('').map((char, index) => {
+                return { id: index, char: char };
+            });
+        }
+
+        do {
+            scrambledLetters = shuffle([...letterObjects]);
+        } while (scrambledLetters.map(l => l.char).join('') === targetWord && targetWord.length > 2);
+
+        renderBoards();
+    }
+
+    function speakCurrentWord() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(targetWord);
+            utterance.lang = 'en-US'; 
+            utterance.rate = 0.85;     
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function renderBoards() {
+        const pileContainer = document.getElementById("scrambled-pile");
+        const answerContainer = document.getElementById("answer-board");
+
+        pileContainer.innerHTML = "";
+        answerContainer.innerHTML = "";
+
+        scrambledLetters.forEach(letterObj => {
+            const tile = document.createElement("div");
+            tile.className = "letter-tile";
+            tile.innerText = letterObj.char;
+            tile.onclick = () => tapLetter(letterObj, 'to-answer');
+            pileContainer.appendChild(tile);
+        });
+
+        answeredLetters.forEach(letterObj => {
+            const tile = document.createElement("div");
+            tile.className = "letter-tile in-answer";
+            tile.innerText = letterObj.char;
+            tile.onclick = () => tapLetter(letterObj, 'to-pile');
+            answerContainer.appendChild(tile);
+        });
+    }
+
+    function tapLetter(letterObj, direction) {
+        clearMessage();
+
+        if (direction === 'to-answer') {
+            scrambledLetters = scrambledLetters.filter(l => l.id !== letterObj.id);
+            answeredLetters.push(letterObj);
+        } else {
+            answeredLetters = answeredLetters.filter(l => l.id !== letterObj.id);
+            scrambledLetters.push(letterObj);
+        }
+
+        renderBoards();
+        checkAnswer();
+    }
+
+    function resetCurrentWord() {
+        clearMessage();
+        scrambledLetters = scrambledLetters.concat(answeredLetters);
+        answeredLetters = [];
+        renderBoards();
+    }
+
+    function clearMessage() {
+        const msg = document.getElementById("message");
+        msg.innerText = "";
+        msg.className = "";
+    }
+
+    function checkAnswer() {
+        const totalTargetTiles = (targetWord === "T-shirt") ? 6 : targetWord.length;
+
+        if (answeredLetters.length === totalTargetTiles) {
+            const currentGuess = answeredLetters.map(l => l.char).join('');
+            const msgElement = document.getElementById("message");
+            
+            if (currentGuess.toLowerCase() === targetWord.toLowerCase()) {
+                clearInterval(timerInterval); 
+                
+                msgElement.innerText = "🎉 Correct!";
+                msgElement.className = "success-text";
+                document.getElementById("next-btn").style.display = "inline-block";
+                document.getElementById("reset-btn").style.display = "none";
+                document.getElementById("speak-btn").style.display = "none";
+            } else {
+                msgElement.innerText = "❌ Wrong! Try again.";
+                msgElement.className = "wrong-text";
+            }
+        }
+    }
+
+    function nextWord() {
+        currentWordIndex++;
+        runTimer(); 
+        loadWord();
+    }
+
+    function endGame(isCompletedWithinTime) {
+        clearInterval(timerInterval);
+        
+        const gameContainer = document.getElementById("game-container");
+        const overlay = document.getElementById("popup-overlay");
+        const titleElement = document.getElementById("popup-title");
+        const detailsContainer = document.getElementById("popup-details");
+        
+        gameContainer.classList.add("blur-background");
+        overlay.style.display = "flex";
+
+        if (isCompletedWithinTime) {
+            const wordsCorrect = gameWords.length;
+            const wordScore = wordsCorrect * 10;
+            const finalScore = wordScore + timeLeft;
+            
+            titleElement.innerText = "🏆 Amazing Perfect!";
+            titleElement.style.color = "#2ecc71";
+            
+            detailsContainer.innerHTML = `
+                <strong>You beat the clock!</strong><br>
+                Words Unscrambled: ${wordsCorrect} (${wordScore} pts)<br>
+                Time Left Bonus: +${timeLeft} pts<br><br>
+                <span style="font-size: 2.2rem; font-weight: bold; color: #2ecc71;">Total Score: ${finalScore}</span>
+            `;
+        } else {
+            document.getElementById("timer").innerText = "0";
+            const wordsCorrect = currentWordIndex;
+            const finalScore = wordsCorrect * 10;
+            
+            titleElement.innerText = "⏰ Time's Up!";
+            titleElement.style.color = "#e74c3c";
+            
+            detailsContainer.innerHTML = `
+                <strong>Great effort!</strong><br>
+                Words Unscrambled: ${wordsCorrect} (${finalScore} pts)<br>
+                Time Left Bonus: +0 pts<br><br>
+                <span style="font-size: 2.2rem; font-weight: bold; color: #e74c3c;">Total Score: ${finalScore}</span>
+            `;
+        }
+    }
+</script>
+
+</body>
+</html>
